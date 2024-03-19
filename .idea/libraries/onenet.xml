@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="onenet">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/tools-containers/onenet/onenet-0.0.1-SNAPSHOT.jar!/" />
+      <root url="jar://$PROJECT_DIR$/tools-containers/onenet/onenet-0.0.1-SNAPSHOT_.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,172 @@
+version: "3.5"
+
+services:
+  sofiadb:
+    image: mariadb:10.5
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: sofiadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: sofia
+    volumes:
+      - ./mysql-files:/var/lib/mysql
+      - ./mysql-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  periodic-backup:
+    build:
+      context: tools-containers/periodic-backup
+    container_name: database-backup
+    environment:
+      MYSQL_CONTAINER_NAME: sofiadb
+      MYSQL_DATABASE: sofia
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./mysql-backup:/opt/mysql/backup
+    command: crond -f -d 8
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  dozzle:
+    image: amir20/dozzle
+    container_name: sofia-logs
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8081:8080"
+    networks:
+      - sofia
+
+  sofia-api-gateway:
+    build:
+      context: tools-containers/sofia-api-gateway
+      args:
+        ONENET_IP: http://onenet:15545
+        SOFIA_IP: http://sofia-backend:15502
+      dockerfile: Dockerfile
+    image: sofia-api-gateway
+    container_name: sofia-api-gateway
+    ports:
+      - "15502:15602"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  onenet:
+    build:
+      context: tools-containers/onenet
+      dockerfile: Dockerfile
+      args:
+        DB_IP: sofiadb
+        DB_PORT: 3306
+        DB_NAME: sofia
+        DB_USERNAME: root
+        DB_PASSWORD: root
+        SOFIA_URI: http://sofia-backend:15502/api
+        ORION_CONSUMER_IP: http://192.168.1.110:1026
+        ORION_PROVIDER_IP: http://192.168.1.110:1027
+    image: onenet
+    container_name: onenet
+    ports:
+      - "15545:15545"
+    restart: unless-stopped
+    depends_on:
+      - sofiadb
+    networks:
+      - sofia
+
+  sofiaredis:
+    image: "redis:alpine"
+    container_name: sofiaredis
+    command: redis-server --requirepass cU7bUfAKHmvvs4yg
+    volumes:
+      - $PWD/redis-data:/var/lib/redis
+      - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    networks:
+      - sofia
+    restart: unless-stopped
+
+  sofia-backend:
+    build:
+      context: backend-container/sofia-backend
+      args:
+        DB_IP: sofiadb
+        DB_PORT: 3306
+        DB_NAME: sofia
+        DB_USERNAME: root
+        DB_PASSWORD: root
+        RMT: https://rmt.ds.unipi.gr
+        REDIS_HOST: sofiaredis
+        REDIS_PORT: 6379
+        REDIS_PASSWORD: cU7bUfAKHmvvs4yg
+      dockerfile: Dockerfile
+    image: sofia-backend
+    container_name: sofia-backend
+    ports:
+      - "15602:15502"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  sofia-frontend-author:
+    build:
+      context: frontend-author-container/sofia-frontend-author
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://localhost:15503/api
+    image: sofia-frontend-author
+    container_name: sofia-frontend-author
+    ports:
+      - "5001:80"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  sofia-frontend:
+    build:
+      context: frontend-container/sofia-frontend
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://localhost:15602/api
+    image: sofia-frontend
+    container_name: sofia-frontend
+    ports:
+      - "5000:80"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  sofia-backend-author:
+    build:
+      context: backend-author-container/sofia-backend-author
+      args:
+        DB_IP: sofiadb
+        DB_PORT: 3306
+        DB_NAME: sofia
+        DB_USERNAME: root
+        DB_PASSWORD: root
+        RMT: https://rmt.ds.unipi.gr
+        REDIS_HOST: sofiaredis
+        REDIS_PORT: 6379
+        REDIS_PASSWORD: cU7bUfAKHmvvs4yg
+      dockerfile: Dockerfile
+    image: sofia-backend-author
+    container_name: sofia-backend-author
+    ports:
+      - "15503:15502"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+networks:
+  sofia:
+    name: sofia
+    driver: bridge
