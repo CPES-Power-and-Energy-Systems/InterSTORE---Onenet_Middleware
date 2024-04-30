@@ -17,67 +17,17 @@ services:
     networks:
       - sofia
 
-  periodic-backup:
-    build:
-      context: tools-containers/periodic-backup
-    container_name: database-backup
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: sofia-phpmyadmin
     environment:
-      MYSQL_CONTAINER_NAME: sofiadb
-      MYSQL_DATABASE: sofia
-      MYSQL_ROOT_PASSWORD: root
-    volumes:
-      - ./mysql-backup:/opt/mysql/backup
-    command: crond -f -d 8
-    restart: unless-stopped
-    networks:
-      - sofia
-
-  dozzle:
-    image: amir20/dozzle
-    container_name: sofia-logs
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      PMA_HOST: sofiadb
+      PMA_USER: root
+      PMA_PASSWORD: root
+      UPLOAD_LIMIT: 300M
     ports:
-      - "8081:8080"
-    networks:
-      - sofia
-
-  sofia-api-gateway:
-    build:
-      context: tools-containers/sofia-api-gateway
-      args:
-        ONENET_IP: http://onenet:15545
-        SOFIA_IP: http://sofia-backend:15502
-      dockerfile: Dockerfile
-    image: sofia-api-gateway
-    container_name: sofia-api-gateway
-    ports:
-      - "15502:15602"
-    restart: unless-stopped
-    networks:
-      - sofia
-
-  onenet:
-    build:
-      context: tools-containers/onenet
-      dockerfile: Dockerfile
-      args:
-        DB_IP: sofiadb
-        DB_PORT: 3306
-        DB_NAME: sofia
-        DB_USERNAME: root
-        DB_PASSWORD: root
-        SOFIA_URI: http://sofia-backend:15502/api
-        ORION_CONSUMER_IP: http://192.168.1.110:1026
-        ORION_PROVIDER_IP: http://192.168.1.110:1027
-    image: onenet
-    container_name: onenet
-    ports:
-      - "15545:15545"
-    restart: unless-stopped
-    depends_on:
-      - sofiadb
+      - "4801:80"
+    restart: always
     networks:
       - sofia
 
@@ -111,21 +61,7 @@ services:
     image: sofia-backend
     container_name: sofia-backend
     ports:
-      - "15602:15502"
-    restart: unless-stopped
-    networks:
-      - sofia
-
-  sofia-frontend-author:
-    build:
-      context: frontend-author-container/sofia-frontend-author
-      dockerfile: Dockerfile
-      args:
-        BACKEND_URL: http://localhost:15503/api
-    image: sofia-frontend-author
-    container_name: sofia-frontend-author
-    ports:
-      - "5001:80"
+      - "15502:15502"
     restart: unless-stopped
     networks:
       - sofia
@@ -135,7 +71,7 @@ services:
       context: frontend-container/sofia-frontend
       dockerfile: Dockerfile
       args:
-        BACKEND_URL: http://localhost:15602/api
+        BACKEND_URL: http://localhost:15502/api
     image: sofia-frontend
     container_name: sofia-frontend
     ports:
@@ -163,6 +99,31 @@ services:
     ports:
       - "15503:15502"
     restart: unless-stopped
+    networks:
+      - sofia
+
+  sofia-frontend-author:
+    build:
+      context: frontend-author-container/sofia-frontend-author
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://localhost:15503/api
+    image: sofia-frontend-author
+    container_name: sofia-frontend-author
+    ports:
+      - "5001:80"
+    restart: unless-stopped
+    networks:
+      - sofia
+
+  dozzle:
+    image: amir20/dozzle
+    container_name: sofia-logs
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "8081:8080"
     networks:
       - sofia
 

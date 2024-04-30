@@ -1,9 +1,6 @@
-FROM adoptopenjdk/openjdk11:jre11u-centos-nightly
+FROM eurodynrnd/sofia-backend-author:latest
 
 EXPOSE 15502
-
-ARG JAR_FILE=sofia-0.0.1.jar
-ADD ${JAR_FILE} app.jar
 
 ARG SOFIA_IMPORTS_FOLDER=sofia_imports
 ADD ${SOFIA_IMPORTS_FOLDER} sofia_imports
@@ -33,6 +30,6 @@ ENV REDIS_PORT_ENV=${REDIS_PORT}
 ENV REDIS_PASSWORD_ENV=${REDIS_PASSWORD}
 
 RUN touch ./entrypoint.sh
-RUN echo "java -jar ./app.jar --spring.profiles.active=prod --sofia.db.ip=${DB_IP_ENV} --sofia.db.port=${DB_PORT_ENV} --sofia.db.name=${DB_NAME_ENV} --sofia.db.username=${DB_USERNAME_ENV} --sofia.db.password=${DB_PASSWORD_ENV} --rmtUrl=${RMT_ENV} --spring.redis.host=${REDIS_HOST_ENV} --spring.redis.port=${REDIS_PORT_ENV} --spring.redis.password=${REDIS_PASSWORD_ENV}" > ./entrypoint.sh
+RUN echo "java -jar ./app.jar --spring.profiles.active=prod --author.db.ip=${DB_IP_ENV} --author.db.port=${DB_PORT_ENV} --author.db.name=${DB_NAME_ENV} --author.db.username=${DB_USERNAME_ENV} --author.db.password=${DB_PASSWORD_ENV} --user.db.ip=${DB_IP_ENV} --user.db.port=${DB_PORT_ENV} --user.db.name=${DB_NAME_ENV} --user.db.username=${DB_USERNAME_ENV} --user.db.password=${DB_PASSWORD_ENV} --rmtUrl=${RMT_ENV} --spring.redis.host=${REDIS_HOST_ENV} --spring.redis.port=${REDIS_PORT_ENV} --spring.redis.password=${REDIS_PASSWORD_ENV}" > ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 CMD ./entrypoint.sh

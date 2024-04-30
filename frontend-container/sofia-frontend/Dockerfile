@@ -1,9 +1,7 @@
-FROM nginx:1.23.3-alpine
+FROM eurodynrnd/sofia-frontend:latest
 
 ARG BACKEND_URL
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY /dist /usr/share/nginx/html
 COPY empty.png /usr/share/nginx/html/assets/img/logo_ed.png
 COPY empty2.png /usr/share/nginx/html/assets/img/logo-H2020.png
 COPY background.jpg /usr/share/nginx/html/assets/img/bg/dark-material-bg.jpg
